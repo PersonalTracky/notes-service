@@ -22,7 +22,9 @@ const main = async () => {
     cli: { migrationsDir: "migrations" },
   });
 
-  const redis = createClient();
+  const redis = createClient({
+    url: process.env.REDIS_URL,
+  });
   var bodyParser = require("body-parser");
   const app = express();
   app.use(bodyParser.urlencoded({ extended: false }));
