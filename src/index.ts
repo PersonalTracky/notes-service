@@ -5,10 +5,7 @@ import { createClient, RedisClient } from "redis";
 import "reflect-metadata";
 import { createConnection, getConnection } from "typeorm";
 import { __prod__ } from "./constants/constants";
-import { Category } from "./entities/Category";
-import { Log } from "./entities/Log";
 import { Note } from "./entities/Note";
-import { User } from "./entities/User";
 
 const main = async () => {
   require("dotenv").config();
@@ -18,7 +15,7 @@ const main = async () => {
     logging: !__prod__,
     synchronize: !__prod__,
     migrations: [path.join(__dirname, "./migrations/*")],
-    entities: [User, Note, Log, Category],
+    entities: [Note],
     cli: { migrationsDir: "migrations" },
   });
 
@@ -33,7 +30,7 @@ const main = async () => {
   console.log("allowing CORS origin:", process.env.CORS_ORIGIN);
   app.use(
     cors({
-      origin: process.env.CORS_ORIGIN,
+      origin: [process.env.CORS_ORIGIN, process.env.CORS_ORIGIN_USER_SERVICE],
       credentials: true,
       methods: ["POST", "GET", "DELETE", "PUT"],
       allowedHeaders: [
@@ -110,6 +107,12 @@ const main = async () => {
     await note.save();
     console.log("Created new note");
     invalidateCache(redis);
+    const message = JSON.stringify({
+      method: "post",
+      creatorId: req.body.creatorId,
+      id: note.id,
+    });
+    redis.publish("note", message);
     res.send({ note: note });
   });
 
@@ -128,6 +131,12 @@ const main = async () => {
   app.delete("/notes", async (req, res) => {
     await Note.delete(req.body.id);
     invalidateCache(redis);
+    const message = JSON.stringify({
+      method: "delete",
+      creatorId: req.body.creatorId,
+      id: req.body.id,
+    });
+    redis.publish("note", message);
     res.send(true);
   });
 

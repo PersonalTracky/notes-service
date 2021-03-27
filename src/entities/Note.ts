@@ -3,11 +3,9 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from "typeorm";
-import { User } from "./User";
 
 @Entity()
 export class Note extends BaseEntity {
@@ -22,9 +20,6 @@ export class Note extends BaseEntity {
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @ManyToOne(() => User, (user) => user.notes)
-  creator: User;
 
   @Column()
   creatorId: number;
