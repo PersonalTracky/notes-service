@@ -60,40 +60,31 @@ const main = async () => {
     const creatorId = req.body.creatorId;
     const realLimit = Math.min(50, limit);
     const reaLimitPlusOne = realLimit + 1;
-    const id = `${process.env.REDIS_PREFIX}:${creatorId}`;
     let notes = null;
-    redis.get(id, async (_err, data) => {
-      if (data != null) {
-        console.log("Retrieved notes from cache...");
-        notes = JSON.parse(data);
-        res.send({
-          notes: notes.slice(0, realLimit),
-          hasMore: notes.length === reaLimitPlusOne,
-        });
-      } else {
-        const qb = getConnection()
-          .getRepository(Note)
-          .createQueryBuilder("n")
-          .where('"creatorId" = :creatorId', { creatorId: creatorId })
-          .orderBy('"createdAt"', "DESC")
-          .limit(reaLimitPlusOne as number);
-        if (req.body.cursor) {
-          qb.where('"createdAt" < :cursor', {
-            cursor: new Date(parseInt(req.body.cursor)),
-          });
-        }
-        notes = await qb.getMany();
-        console.log("Retrieved notes from database...");
-        redis.setex(
-          `${process.env.REDIS_PREFIX}:${creatorId}`,
-          3600,
-          JSON.stringify(notes)
-        );
-        res.send({
-          notes: notes.slice(0, realLimit),
-          hasMore: notes.length === reaLimitPlusOne,
-        });
-      }
+
+    const qb = getConnection()
+      .getRepository(Note)
+      .createQueryBuilder("n")
+      .where('"creatorId" = :creatorId', { creatorId: creatorId })
+      .orderBy('"createdAt"', "DESC")
+      .limit(reaLimitPlusOne as number);
+    if (req.body.cursor) {
+      console.log(typeof req.body.cursor);
+      console.log(req.body.cursor);
+      qb.where('"createdAt" < :cursor', {
+        cursor: req.body.cursor,
+      });
+    }
+    notes = await qb.getMany();
+    console.log("Retrieved notes from database...");
+    redis.setex(
+      `${process.env.REDIS_PREFIX}:${creatorId}`,
+      3600,
+      JSON.stringify(notes)
+    );
+    res.send({
+      notes: notes.slice(0, realLimit),
+      hasMore: notes.length === reaLimitPlusOne,
     });
   });
 
@@ -104,6 +95,8 @@ const main = async () => {
     const note = new Note();
     note.text = req.body.text;
     note.creatorId = req.body.creatorId;
+    note.createdAt = new Date(Date.now()).toISOString();
+    note.updatedAt = new Date(Date.now()).toISOString();
     await note.save();
     console.log("Created new note");
     invalidateCache(redis);
@@ -123,6 +116,7 @@ const main = async () => {
     }
     const text: string = req.body.text;
     note!.text = text;
+    note!.updatedAt = new Date(Date.now()).toISOString();
     await note?.save();
     invalidateCache(redis);
     res.send({ note: note });

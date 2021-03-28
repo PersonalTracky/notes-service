@@ -1,11 +1,4 @@
-import {
-  BaseEntity,
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from "typeorm";
+import { BaseEntity, Column, Entity, PrimaryGeneratedColumn } from "typeorm";
 
 @Entity()
 export class Note extends BaseEntity {
@@ -15,11 +8,11 @@ export class Note extends BaseEntity {
   @Column()
   text: string;
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @Column()
+  createdAt: string;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @Column()
+  updatedAt: string;
 
   @Column()
   creatorId: number;
