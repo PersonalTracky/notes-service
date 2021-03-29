@@ -53,38 +53,22 @@ const main = async () => {
   }
 
   app.post("/paginated-notes", async (req, res) => {
-    // Enforcing a maximum limit means that we can not over request even if
-    // a high limit is set. Rate limit plus one means that we can look ahead
-    // and see if there are more notes in the pagination
-    const limit = parseInt(req.body.limit);
     const creatorId = req.body.creatorId;
-    const realLimit = Math.min(50, limit);
-    const reaLimitPlusOne = realLimit + 1;
-    let notes = null;
-
-    const qb = getConnection()
-      .getRepository(Note)
-      .createQueryBuilder("n")
-      .where('"creatorId" = :creatorId', { creatorId: creatorId })
-      .orderBy('"createdAt"', "DESC")
-      .limit(reaLimitPlusOne as number);
-    if (req.body.cursor) {
-      console.log(typeof req.body.cursor);
-      console.log(req.body.cursor);
-      qb.where('"createdAt" < :cursor', {
-        cursor: req.body.cursor,
-      });
-    }
-    notes = await qb.getMany();
-    console.log("Retrieved notes from database...");
+    const notes = await Note.find({
+      where: {
+        creatorId: parseInt(creatorId),
+      },
+      order: {
+        createdAt: "DESC",
+      },
+    });
     redis.setex(
       `${process.env.REDIS_PREFIX}:${creatorId}`,
       3600,
       JSON.stringify(notes)
     );
     res.send({
-      notes: notes.slice(0, realLimit),
-      hasMore: notes.length === reaLimitPlusOne,
+      notes,
     });
   });
 
