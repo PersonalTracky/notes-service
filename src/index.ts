@@ -3,7 +3,7 @@ import express from "express";
 import path from "path";
 import { createClient, RedisClient } from "redis";
 import "reflect-metadata";
-import { createConnection, getConnection } from "typeorm";
+import { createConnection } from "typeorm";
 import { __prod__ } from "./constants/constants";
 import { Note } from "./entities/Note";
 
